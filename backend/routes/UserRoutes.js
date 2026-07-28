@@ -349,6 +349,26 @@ router.get(
   }
 );
 
+// ── GET /repository/:owner/:repo/releases ────────────────────────────────────
+
+router.get(
+  "/repository/:owner/:repo/releases",
+  authenticateJWT,
+  async (req, res) => {
+    try {
+      const { owner, repo } = req.params;
+      const data = await githubApiRequest(
+        req.user.userId,
+        `/repos/${owner}/${repo}/releases`
+      );
+      return res.json({ releases: data });
+    } catch (error) {
+      console.error("Error fetching releases:", error.message);
+      return res.status(500).json({ error: "Failed to fetch releases." });
+    }
+  }
+);
+
 // ── POST /logout ─────────────────────────────────────────────────────────────
 
 router.post("/logout", authenticateJWT, async (req, res) => {
