@@ -1,7 +1,7 @@
 const express = require("express");
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
-const { v4: uuidv4 } = require("uuid");
+const crypto = require("crypto");
 
 const User = require("../models/User");
 const OAuthState = require("../models/OAuthState");
@@ -33,7 +33,7 @@ const DEEP_LINK_SCHEME = "apprunner";
 router.get("/auth/github", async (req, res) => {
   try {
     // Generate a random state for CSRF protection
-    const state = uuidv4();
+    const state = crypto.randomUUID();
     await OAuthState.create({ state });
 
     const params = new URLSearchParams({
@@ -136,7 +136,7 @@ router.get("/auth/github/callback", async (req, res) => {
     );
 
     // --- 6. Generate one-time auth code ---
-    const authCode = uuidv4();
+    const authCode = crypto.randomUUID();
     await AuthCode.create({ code: authCode, userId: user._id });
 
     console.log(`✅ User authenticated: ${user.username} (${user.githubId})`);
