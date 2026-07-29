@@ -369,6 +369,41 @@ router.get(
   }
 );
 
+// ── POST /repository/:owner/:repo/releases ───────────────────────────────────
+
+router.post(
+  "/repository/:owner/:repo/releases",
+  authenticateJWT,
+  async (req, res) => {
+    try {
+      const { owner, repo } = req.params;
+      const { tag_name, name, body } = req.body;
+      
+      const accessToken = await getGithubToken(req.user.userId);
+      const response = await axios.post(
+        `${GITHUB_API_BASE}/repos/${owner}/${repo}/releases`,
+        { 
+          tag_name, 
+          name, 
+          body,
+          generate_release_notes: true 
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/vnd.github+json",
+          },
+        }
+      );
+      
+      return res.status(201).json(response.data);
+    } catch (error) {
+      console.error("Error creating release:", error.response?.data || error.message);
+      return res.status(error.response?.status || 500).json({ error: "Failed to create release." });
+    }
+  }
+);
+
 // ── GET /repository/:owner/:repo/releases/assets/:assetId/download ──────────
 
 router.get(
