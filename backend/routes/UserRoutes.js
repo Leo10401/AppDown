@@ -368,40 +368,39 @@ router.get(
     }
   }
 );
-// ── GET /repository/:owner/:repo/releases/assets/:assetId ────────────────────
+
+// ── GET /repository/:owner/:repo/releases/assets/:assetId/download ──────────
 
 router.get(
-  "/repository/:owner/:repo/releases/assets/:assetId",
+  "/repository/:owner/:repo/releases/assets/:assetId/download",
   authenticateJWT,
   async (req, res) => {
     try {
       const { owner, repo, assetId } = req.params;
       const accessToken = await getGithubToken(req.user.userId);
       
-      // Request the asset from GitHub
-      await axios.get(
-        `${GITHUB_API_BASE}/repos/${owner}/${repo}/releases/assets/${assetId}`,
+      const response = await axios.get(
+        `https://api.github.com/repos/${owner}/${repo}/releases/assets/${assetId}`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             Accept: "application/octet-stream",
           },
-          maxRedirects: 0, // Prevent axios from following the redirect to S3
+          maxRedirects: 0,
+          validateStatus: (status) => status >= 200 && status < 400,
         }
       );
 
-      // If it doesn't redirect, something is wrong
-      return res.status(500).json({ error: "Expected redirect to S3 URL" });
+      if (response.status === 302) {
+        return res.json({ downloadUrl: response.headers.location });
+      }
+      return res.status(400).json({ error: "Expected redirect but got " + response.status });
     } catch (error) {
       if (error.response && error.response.status === 302) {
-        // GitHub redirected to AWS S3!
-        const downloadUrl = error.response.headers.location;
-        if (downloadUrl) {
-          return res.redirect(downloadUrl);
-        }
+        return res.json({ downloadUrl: error.response.headers.location });
       }
-      console.error("Error fetching release asset:", error.message);
-      return res.status(500).json({ error: "Failed to fetch release asset." });
+      console.error("Error getting asset download URL:", error.message);
+      return res.status(500).json({ error: "Failed to get download URL." });
     }
   }
 );
