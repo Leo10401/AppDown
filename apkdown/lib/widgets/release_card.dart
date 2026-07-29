@@ -121,6 +121,77 @@ class _ReleaseCardState extends State<ReleaseCard>
     final path = _downloadPaths[index];
     if (path == null) return;
 
+    final repoLower = widget.repoFullName.toLowerCase();
+    final isSelfUpdate = repoLower.contains('appdown') || repoLower.contains('apkdown');
+
+    if (isSelfUpdate) {
+      final shouldProceed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF161B22),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF30363D)),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.system_update_alt, color: Color(0xFF58A6FF)),
+              const SizedBox(width: 10),
+              Text(
+                'Self-Update Notice',
+                style: GoogleFonts.vt323(color: Colors.white, fontSize: 22),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'You are installing an update for GitDown.',
+                style: GoogleFonts.vt323(color: Colors.white, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D1117),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFD29922).withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  '💡 Signature Conflict Warning:\nIf installation fails with "App not installed", your currently running version is a debug/dev build. You will need to uninstall the debug build first.',
+                  style: GoogleFonts.vt323(color: const Color(0xFFD29922), fontSize: 14, height: 1.3),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.vt323(color: const Color(0xFF8B949E), fontSize: 18),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2EA043),
+                foregroundColor: Colors.white,
+              ),
+              child: Text(
+                'Install Update',
+                style: GoogleFonts.vt323(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldProceed != true) return;
+    }
+
     setState(() {
       _downloadStates[index] = ApkDownloadState.installing;
     });
