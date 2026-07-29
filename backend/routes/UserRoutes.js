@@ -368,6 +368,43 @@ router.get(
     }
   }
 );
+// ── GET /repository/:owner/:repo/releases/assets/:assetId ────────────────────
+
+router.get(
+  "/repository/:owner/:repo/releases/assets/:assetId",
+  authenticateJWT,
+  async (req, res) => {
+    try {
+      const { owner, repo, assetId } = req.params;
+      const accessToken = await getGithubToken(req.user.userId);
+      
+      // Request the asset from GitHub
+      await axios.get(
+        `${GITHUB_API_BASE}/repos/${owner}/${repo}/releases/assets/${assetId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/octet-stream",
+          },
+          maxRedirects: 0, // Prevent axios from following the redirect to S3
+        }
+      );
+
+      // If it doesn't redirect, something is wrong
+      return res.status(500).json({ error: "Expected redirect to S3 URL" });
+    } catch (error) {
+      if (error.response && error.response.status === 302) {
+        // GitHub redirected to AWS S3!
+        const downloadUrl = error.response.headers.location;
+        if (downloadUrl) {
+          return res.redirect(downloadUrl);
+        }
+      }
+      console.error("Error fetching release asset:", error.message);
+      return res.status(500).json({ error: "Failed to fetch release asset." });
+    }
+  }
+);
 
 // ── POST /logout ─────────────────────────────────────────────────────────────
 
